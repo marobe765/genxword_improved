@@ -18,6 +18,7 @@
 # along with genxword.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 import os
+import csv
 import sys
 import gettext
 import random
@@ -38,6 +39,9 @@ class Genxword(object):
     def wlist(self, words, nwords=50):
         """Create a list of words and clues."""
         wordlist = [line.strip().split(' ', 1) for line in words if line.strip()]
+        self.wlist_part2(wordlist, nwords)
+
+    def wlist_part2(self, wordlist, nwords):
         if len(wordlist) > nwords:
             wordlist = random.sample(wordlist, nwords)
         self.wordlist = [[ComplexString(line[0].upper()), line[-1]] for line in wordlist]
@@ -45,6 +49,13 @@ class Genxword(object):
         if self.mixmode:
             for line in self.wordlist:
                 line[1] = self.word_mixer(line[0].lower())
+
+    def csvlist(self, csv_file, nwords=10000):
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        csvrows = list(csv_reader)
+
+        wordlist = [[c[1], c[0]] for c in csvrows]
+        self.wlist_part2(wordlist, nwords)
 
     def word_mixer(self, word):
         """Create anagrams for the clues."""

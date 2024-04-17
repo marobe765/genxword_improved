@@ -192,12 +192,21 @@ class Exportfiles(object):
                     context.set_source_rgb(0.5, 0.5, 0.5)
                     context.rectangle(xoffset+(i*px), yoffset+(r*px), px, px)
                     context.stroke()
+
+
                     context.set_line_width(1.0)
                     context.set_source_rgb(0, 0, 0)
                     context.rectangle(xoffset+1+(i*px), yoffset+1+(r*px), px-2, px-2)
+
+                    if c == " ":
+                        context.set_source_rgb(0, 0, 0)
+                        context.fill()
                     context.stroke()
                     if '_key.' in name:
                         self.draw_letters(c, context, xoffset+(i*px)+10, yoffset+(r*px)+8, 'monospace 11')
+                    #elif c==" ":
+                    #    #context.fill()
+                    #    self.draw_letters("@", context, xoffset + (i * px) + 10, yoffset + (r * px) + 8, 'monospace 11')
 
         self.order_number_words()
         for word in self.wordlist:
