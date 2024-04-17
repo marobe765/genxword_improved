@@ -1,3 +1,5 @@
+.idea
+genxword/__pycache__
 dist/
 genxword.egg-info/
 mo/
