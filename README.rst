@@ -30,6 +30,9 @@ Features
 -  A dictionary file can be used as the word list. A certain amount of
    words (default 50) will be randomly selected from the file and used
    to make the crossword.
+-  As second option a csv file can be used to obtain the word list.
+   each line must show as "answer","question". It is useful for words with spaces.
+   Spaces are shown black in the final grid.
 -  When editing the word list, there is an option to sort it, from the
    shortest to the longest word, and remove non-alphabetic characters.
 -  Multiple languages, including right-to-left languages, such as Hebrew

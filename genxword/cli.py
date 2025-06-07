@@ -26,14 +26,17 @@ For further information on how to format the word list file and about the other 
 
 def main():
     parser = argparse.ArgumentParser(description=_('Crossword generator.'), prog='genxword', epilog=usage_info)
-    parser.add_argument('infile', help=_('Name of word list file.'))
+    parser.add_argument('infile', help=_('Name of word list file... if csv, use format "answer","question" like xwords'))
     filetypes = [c for c in 'plnszcjt']
-    parser.add_argument('saveformat', help=_('Save files as A4 PDF (p), Letter Size PDF (l), PNG (n), SVG (s), IPUZ (z),'
+    parser.add_argument('-f', '--saveformat', help=_('Save files as A4 PDF (p), Letter Size PDF (l), PNG (n), SVG (s), IPUZ (z),'
                                              'Plain Text (t), CSV (c), and/or JSON (j).'))
+                                             'ipuz(z).'))
     parser.add_argument('-a', '--auto', dest='auto', action='store_true', help=_('Automated (non-interactive) option.'))
     parser.add_argument('-m', '--mix', dest='mixmode', action='store_true', help=_('Create anagrams for the clues'))
     parser.add_argument('-n', '--number', dest='nwords', type=int, default=50, help=_('Number of words to be used.'))
     parser.add_argument('-o', '--output', dest='output', default='Gumby', help=_('Name of crossword.'))
+    parser.add_argument('-s', '--solution', dest='solution', default=None, help=_('Solution of crossword.'))
+
     args = parser.parse_args()
     if not any([f in args.saveformat for f in filetypes]):
         # If none of the filetypes matched
@@ -41,6 +44,11 @@ def main():
         quit(1)
     gen = Genxword(args.auto, args.mixmode)
     with open(args.infile) as infile:
-        gen.wlist(infile, args.nwords)
+        if args.infile.endswith(".csv"):
+            gen.csvlist(infile,args.nwords)
+        else:
+            gen.wlist(infile, args.nwords)
+
+    gen.addsolution(args.solution) #None or string
     gen.grid_size()
     gen.gengrid(args.output, args.saveformat)
