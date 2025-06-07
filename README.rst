@@ -30,6 +30,9 @@ Features
 -  A dictionary file can be used as the word list. A certain amount of
    words (default 50) will be randomly selected from the file and used
    to make the crossword.
+-  As second option a csv file can be used to obtain the word list.
+   each line must show as "answer","question". It is useful for words with spaces.
+   Spaces are shown black in the final grid.
 -  When editing the word list, there is an option to sort it, from the
    shortest to the longest word, and remove non-alphabetic characters.
 -  Multiple languages, including right-to-left languages, such as Hebrew
@@ -41,20 +44,36 @@ Use
 Please read the `wiki <https://github.com/riverrun/genxword/wiki>`_ for
 information about how to use genxword.
 
-Installation
-------------
+GUI Installation
+----------------
 
 To install genxword (add *sudo* to the command, or run as root,
-if you are using Linux): ::
+if you are using Linux):
 
     pip3 install genxword
+
+Next, ensure you have installed all the necessary dependencies under #Dependencies.
+
+Lite Installation
+-----------------
+
+Simply run:
+
+   pip3 install genxword --no-deps
+
+Everything will work fine. However, you will only be able to export to:
+   t: Text,
+   z: IPUZ,
+   c: CSV,
+   j: Simplified JSON Representation
 
 Dependencies
 ------------
 
-Genxword depends on pycairo (python-cairo), pygobject (python-gobject or python-gi),
-python-gi-cairo (if you are using a Debian-based system), pango (gir1.2-pango-1.0),
-gtksourceview3 (gir1.2-gtksource-3.0) and gettext.
+Genxword requires pycairo (python-cairo), pygobject (python-gobject or python-gi),
+python-gi-cairo (if you are using a Debian-based system), and pango (gir1.2-pango-1.0).
+
+If you would like to use the GUI, install gtksourceview3 (gir1.2-gtksource-3.0) and gettext.
 
 These dependencies can easily be installed on Linux by using your package manager,
 and with most distributions, they will already be installed.

@@ -18,6 +18,7 @@
 # along with genxword.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 
 import os
+import csv
 import sys
 import gettext
 import random
@@ -38,6 +39,9 @@ class Genxword(object):
     def wlist(self, words, nwords=50):
         """Create a list of words and clues."""
         wordlist = [line.strip().split(' ', 1) for line in words if line.strip()]
+        self.wlist_part2(wordlist, nwords)
+
+    def wlist_part2(self, wordlist, nwords):
         if len(wordlist) > nwords:
             wordlist = random.sample(wordlist, nwords)
         self.wordlist = [[ComplexString(line[0].upper()), line[-1]] for line in wordlist]
@@ -45,6 +49,16 @@ class Genxword(object):
         if self.mixmode:
             for line in self.wordlist:
                 line[1] = self.word_mixer(line[0].lower())
+
+    def csvlist(self, csv_file, nwords=10000):
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        csvrows = list(csv_reader)
+
+        wordlist = [[c[1], c[0]] for c in csvrows]
+        self.wlist_part2(wordlist, nwords)
+
+    def addsolution(self,solution):
+        self.solution = solution
 
     def word_mixer(self, word):
         """Create anagrams for the clues."""
@@ -84,8 +98,13 @@ class Genxword(object):
         i = 0
         while 1:
             print(_('Calculating your crossword...'))
-            calc = Crossword(self.nrow, self.ncol, '-', self.wordlist)
+            calc = Crossword(self.nrow, self.ncol, '-', self.wordlist, self.solution)
             print(calc.compute_crossword())
+
+            print(calc.let_coords)
+            print(calc.current_wordlist)
+            calc.calc_solution_coords()
+            print("Solution_coords",calc.solution_coords)
             if self.auto:
                 if float(len(calc.best_wordlist))/len(self.wordlist) < 0.9 and i < 5:
                     self.nrow += 2; self.ncol += 2
@@ -99,7 +118,9 @@ class Genxword(object):
                 inc_gsize = input(_('And increase the grid size? [Y/n] '))
                 if inc_gsize.strip() != _('n'):
                     self.nrow += 2;self.ncol += 2
+
+
         lang = _('Across/Down').split('/')
         message = _('The following files have been saved to your current working directory:\n')
-        exp = Exportfiles(self.nrow, self.ncol, calc.best_grid, calc.best_wordlist, '-')
+        exp = Exportfiles(self.nrow, self.ncol, calc.best_grid, calc.best_wordlist,calc.solution,calc.solution_coords, '-')
         exp.create_files(name, saveformat, lang, message)

@@ -50,8 +50,8 @@ else:
 
 setup(
     name='genxword',
-    version='2.2.0',
-    author='David Whitlock',
+    version='2.2.1',
+    author='David Whitlock and Marobe',
     author_email='alovedalongthe@gmail.com',
     url='https://github.com/riverrun/genxword',
     description='A crossword generator',

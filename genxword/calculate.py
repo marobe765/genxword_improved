@@ -19,22 +19,36 @@
 # You should have received a copy of the GNU General Public License
 # along with genxword.  If not, see <http://www.gnu.org/licenses/gpl.html>.
 
-import gi
-gi.require_version('PangoCairo', '1.0')
-gi.require_version('Pango', '1.0')
+NOGTK = False
+try:
+    import gi
+    gi.require_version('PangoCairo', '1.0')
+    gi.require_version('Pango', '1.0')
 
-from gi.repository import Pango, PangoCairo
-import random, time, cairo, json
+    from gi.repository import Pango, PangoCairo
+    import cairo
+except ImportError as e:
+    NOGTK = True
+    print("MISSING DEPENDENCIES!")
+    print("IGNORE IF LITE VERSION WAS INTENTIONALLY INSTALLED!")
+    print(e)
+    print()
+
+import random, time, json, csv
 from operator import itemgetter
 from collections import defaultdict
 
 class Crossword(object):
-    def __init__(self, rows, cols, empty=' ', available_words=[]):
+    def __init__(self, rows, cols, empty=' ', available_words=[], solution=None):
         self.rows = rows
         self.cols = cols
         self.empty = empty
         self.available_words = available_words
         self.let_coords = defaultdict(list)
+        self.solution = solution
+        if self.solution:
+            self.solution = self.solution.upper()
+        self.solution_coords = []
 
     def prep_grid_words(self):
         self.current_wordlist = []
@@ -157,6 +171,28 @@ class Crossword(object):
             else:
                 col += 1
 
+    def calc_solution_coords(self):
+        print(f"I am in calc_solution_coords: {self.solution}")
+        self.solution_coords = []
+
+        if not self.solution:
+            return
+
+        for letter in self.solution:
+            if not letter.isalpha():
+                self.solution_coords.append([])
+                continue
+
+            #coords3 = list(set(self.let_coords[letter]).difference(set(self.solution_coords)))
+            coords = [ c[:2] for c in self.let_coords[letter] if not c[:2] in self.solution_coords]
+
+            if len(coords)==0:
+                raise RuntimeError(f"Letter {letter} cannot be in the solution, as it is not in the crossword")
+            else:
+                self.solution_coords.append(random.choice(coords)[:2])
+
+
+
     def cell_occupied(self, row, col):
         cell = self.grid[row][col]
         if cell == self.empty:
@@ -165,12 +201,14 @@ class Crossword(object):
             return True
 
 class Exportfiles(object):
-    def __init__(self, rows, cols, grid, wordlist, empty=' '):
+    def __init__(self, rows, cols, grid, wordlist, solution, solution_coords, empty=' '):
         self.rows = rows
         self.cols = cols
         self.grid = grid
         self.wordlist = wordlist
         self.empty = empty
+        self.solution = solution
+        self.solution_coords = solution_coords
 
     def order_number_words(self):
         self.wordlist.sort(key=itemgetter(2, 3))
@@ -188,23 +226,76 @@ class Exportfiles(object):
         for r in range(self.rows):
             for i, c in enumerate(self.grid[r]):
                 if c != self.empty:
-                    context.set_line_width(1.0)
-                    context.set_source_rgb(0.5, 0.5, 0.5)
+                    context.set_line_width(3.0)
+                    context.set_source_rgb(0.3, 0.3, 0.3)
                     context.rectangle(xoffset+(i*px), yoffset+(r*px), px, px)
                     context.stroke()
-                    context.set_line_width(1.0)
-                    context.set_source_rgb(0, 0, 0)
                     context.rectangle(xoffset+1+(i*px), yoffset+1+(r*px), px-2, px-2)
+
+                    if c == " ": #spaces shall show up black in the grid
+                        context.set_source_rgb(0.5, 0.5, 0.5)
+                        context.fill()
+                    elif (r, i) in self.solution_coords:
+                        context.set_source_rgb(0, 0.6, 1)
+                        context.fill()
+
                     context.stroke()
+
+                    #draw numbers for solution letters
+                    #draw number for solution
+                    if (r,i) in self.solution_coords:
+                            context.set_source_rgb(0, 0, 1)
+                            context.fill()
+                            context.stroke()
+                            index = self.solution_coords.index((r,i))
+                            self.draw_letters(f"{index+1}", context, xoffset + (i * px) + 4, yoffset + (r * px) + 19,
+                                              'monospace 6')
                     if '_key.' in name:
                         self.draw_letters(c, context, xoffset+(i*px)+10, yoffset+(r*px)+8, 'monospace 11')
+
+        #draw solution
+        r = 1
+        for i, c in enumerate(self.solution):
+            context.set_line_width(1.0)
+            context.set_source_rgb(0.5, 0.5, 0.5)
+            context.rectangle(xoffset + (i * px), yoffset-80 + (r * px), px, px)
+            context.stroke()
+
+            context.set_line_width(1.0)
+            context.set_source_rgb(0, 0, 0)
+
+            context.rectangle(xoffset + 1 + (i * px), yoffset-80 + 1 + (r * px), px - 2, px - 2)
+            if not c.isalpha():
+                context.set_source_rgb(0.5, 0.5, 0.5)
+                context.fill()
+            else:
+                context.set_source_rgb(0, 0.6, 1)
+                context.fill()
+            context.stroke()
+
+            if '_key.' in name:
+                context.set_source_rgb(0, 0, 1)
+                self.draw_letters(c, context, xoffset + (i * px) + 10, yoffset-80 + (r * px) + 8, 'monospace 11')
+            else: #grid
+                if not c.isalpha():
+                    context.set_source_rgb(0, 0, 0)
+                    self.draw_letters(c, context, xoffset + (i * px) + 10, yoffset - 80 + (r * px) + 7, 'monospace 11')
+            context.stroke()
+            context.set_source_rgb(0, 0, 1)
+            self.draw_letters(f"{i + 1}", context, xoffset + (i * px) + 4, yoffset -80 + (r * px) + 19,
+                              'monospace 6')
+            context.stroke()
+
 
         self.order_number_words()
         for word in self.wordlist:
             if RTL:
                 x, y = ((self.cols-1)*px)+xoffset-(word[3]*px), yoffset+(word[2]*px)
+
             else:
                 x, y = xoffset+(word[3]*px), yoffset+(word[2]*px)
+
+
             self.draw_letters(str(word[5]), context, x+3, y+2, 'monospace 6')
 
     def draw_letters(self, text, context, xval, yval, fontdesc):
@@ -234,7 +325,7 @@ class Exportfiles(object):
             surface.finish()
 
     def export_pdf(self, xwname, filetype, lang, RTL, width=595, height=842):
-        px, xoffset, yoffset = 28, 36, 72
+        px, xoffset, yoffset = 28, 36, 50
         name = xwname + filetype
         surface = cairo.PDFSurface(name, width, height)
         context = cairo.Context(surface)
@@ -246,11 +337,36 @@ class Exportfiles(object):
         if self.cols <= 21:
             sc_ratio, xoffset = 0.8, float(1.25*width-(px*self.cols))/2
         context.scale(sc_ratio, sc_ratio)
-        self.draw_img(name, context, 28, xoffset, 80, RTL)
+        self.draw_img(name, context, 28, xoffset, 70, RTL)
         context.restore()
         context.set_source_rgb(0, 0, 0)
-        self.draw_letters(xwname, context, round((width-len(xwname)*10)/2), yoffset/2, 'Sans 14 bold')
-        x, y = 36, yoffset+5+(self.rows*px*sc_ratio)
+        #self.draw_letters(xwname, context, round((width-len(xwname)*10)/2), yoffset/2, 'Sans 14 bold')
+        x, y = 36, yoffset+(self.rows*px*sc_ratio)
+        #x, y = 36, yoffset+(self.rows*px*sc_ratio)
+
+        clues={"Down":[f"{lang[1]}:"],"Across":[f"{lang[0]}:"]}
+        for clue in self.wordlist:
+            word, clue_text, row, col, vertical, num = clue[:6]
+            clue_list_entry=f"{num}. {clue_text}"
+            if vertical:
+                clues['Down'].append(clue_list_entry)
+            else:
+                clues['Across'].append(clue_list_entry)
+
+        for z in zip(clues["Down"],clues["Across"]):
+            self.draw_letters(z[0], context, x, y + 18, 'Serif 9')
+            self.draw_letters(z[1], context, x+width/2, y + 18, 'Serif 9')
+            y+=13
+            if y > height-40:
+                context.show_page()
+                y = yoffset / 2
+
+
+        context.show_page()
+        surface.finish()
+
+        """
+
         clues = self.wrap(self.legend(lang))
         self.draw_letters(lang[0], context, x, y, 'Sans 12 bold')
         for line in clues.splitlines()[3:]:
@@ -269,6 +385,7 @@ class Exportfiles(object):
             y += 16
         context.show_page()
         surface.finish()
+        """
 
     def create_files(self, name, save_format, lang, message):
         if Pango.find_base_dir(self.wordlist[0][0], -1) == Pango.Direction.RTL:
@@ -277,6 +394,15 @@ class Exportfiles(object):
         else:
             RTL = False
         img_files = ''
+        if 't' in save_format:
+            self.write_text(name, name + '.txt', lang)
+            img_files += name + '.txt'
+        if 'j' in save_format:
+            self.write_json(name, name + '.json', lang)
+            img_files += name + '.json'
+        if 'c' in save_format:
+            self.write_csv(name, name + '.csv', lang)
+            img_files += name + '.csv'
         if 'p' in save_format:
             self.export_pdf(name, '_grid.pdf', lang, RTL)
             self.export_pdf(name, '_key.pdf', lang, RTL)
@@ -375,3 +501,76 @@ class Exportfiles(object):
 
         with open(filename, 'w') as fp:
             json.dump(data, fp, indent=4)
+    
+    def write_json(self, name, filename, lang):
+        # Generate the clue numbers if we haven't already
+        if len(self.wordlist[0]) < 6:
+            self.order_number_words()
+
+        # Generate some data structures for the final output
+        data = {
+            "name": name,
+            'dimensions': {
+                'width': self.cols,
+                'height': self.rows
+            },
+            'puzzle': []
+        }
+        # Iterate the clues to calculate the main data
+        for clue in self.wordlist:
+            word, clue_text, row, col, vertical, num = clue[:6]
+            c = {
+                "ans": word,
+                "clue": clue_text,
+                "row": row,
+                "col": col,
+                "vspan": bool(vertical)  # if Vertical 
+            }
+            data["puzzle"].append(c)
+
+        with open(filename, 'w') as fp:
+            json.dump(data, fp)
+
+    
+    def write_text(self, name, filename, lang):
+        # Generate the clue numbers if we haven't already
+        if len(self.wordlist[0]) < 6:
+            self.order_number_words()
+
+        # Generate some data structures format the final output
+        puzzle = [["##"] * self.cols for row in range(self.rows)]
+        clues = {'Across': [], 'Down': []}
+        solution = [['#' if col == '-' else col for col in row] for row in self.grid]
+
+        # Iterate the clues to calculate the main data
+        for clue in self.wordlist:
+            word, clue_text, row, col, vertical, num = clue[:6]
+            puzzle[row][col] = str(num) if num > 9 else "0" + str(num)
+
+            puz_clue = [num, clue_text]
+            if vertical:
+                clues['Down'].append(puz_clue)
+                for i in range(len(word)):
+                    if puzzle[row + i][col] == "##":
+                        puzzle[row + i][col] = "  "
+            else:
+                clues['Across'].append(puz_clue)
+                for i in range(len(word)):
+                    if puzzle[row][col + i] == "##":
+                        puzzle[row][col + i] = "  "
+
+        with open(filename, 'w') as fp:
+            fp.write(name + "\n\n")
+            for row in puzzle:
+                fp.write(' '.join(row) + '\n')
+            fp.write('\n')
+            for (dir, cluelist) in clues.items():
+                fp.write(dir + ":\n")
+                for clue in cluelist:
+                    fp.write('{:2d}'.format(clue[0]) + ": " + clue[1] + '\n')
+
+    def write_csv(self, name, filename, lang):
+        with open(filename, 'w') as fp:
+            fieldnames = ["word", "clue", "row", "col", "vertical", "num"]
+            writer = csv.writer(fp)
+            writer.writerows(self.wordlist)            
