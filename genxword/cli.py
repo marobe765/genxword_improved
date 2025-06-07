@@ -30,7 +30,6 @@ def main():
     filetypes = [c for c in 'plnszcjt']
     parser.add_argument('-f', '--saveformat', help=_('Save files as A4 PDF (p), Letter Size PDF (l), PNG (n), SVG (s), IPUZ (z),'
                                              'Plain Text (t), CSV (c), and/or JSON (j).'))
-                                             'ipuz(z).'))
     parser.add_argument('-a', '--auto', dest='auto', action='store_true', help=_('Automated (non-interactive) option.'))
     parser.add_argument('-m', '--mix', dest='mixmode', action='store_true', help=_('Create anagrams for the clues'))
     parser.add_argument('-n', '--number', dest='nwords', type=int, default=50, help=_('Number of words to be used.'))
