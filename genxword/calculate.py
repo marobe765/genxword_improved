@@ -57,7 +57,7 @@ class Crossword(object):
         self.available_words = [word[:2] for word in self.available_words]
         self.first_word(self.available_words[0])
 
-    def compute_crossword(self, time_permitted=1.00):
+    def compute_crossword(self, time_permitted=10.00):
         self.best_wordlist = []
         wordlist_length = len(self.available_words)
         time_permitted = float(time_permitted)
