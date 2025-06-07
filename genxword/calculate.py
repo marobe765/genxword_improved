@@ -520,7 +520,7 @@ class Exportfiles(object):
         for clue in self.wordlist:
             word, clue_text, row, col, vertical, num = clue[:6]
             c = {
-                "ans": word,
+                "answer": word,
                 "clue": clue_text,
                 "row": row,
                 "col": col,
